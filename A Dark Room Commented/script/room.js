@@ -512,6 +512,16 @@ var Room = {
 			cost: {'wood': 1}
 		}).appendTo('div#roomPanel');
 		
+		// Create the stoke button
+		new Button.Button({
+			id: 'testButton',
+			text: _("What is EWB?"),
+			click: Room.printEWBtext,
+			//cooldown: Room._STOKE_COOLDOWN,
+			width: '150px'
+			//cost: {'wood': 1}
+		}).appendTo('div#roomPanel');
+		
 		// Create the stores container
 		$('<div>').attr('id', 'storesContainer').prependTo('div#roomPanel');
 		
@@ -663,6 +673,11 @@ var Room = {
 			$SM.set('game.fire', Room.FireEnum.fromInt($SM.get('game.fire.value') + 1));
 		}
 		Room.onFireChange();
+	},
+	
+	printEWBtext: function() {
+		Notifications.notify(Room, _("We are the Engineers Without Borders, we build wells and hold bake sales."));
+		Room.onFireChange;
 	},
 	
 	onFireChange: function() {
