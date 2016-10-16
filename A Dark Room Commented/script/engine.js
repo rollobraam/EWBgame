@@ -72,8 +72,8 @@
 
 		options: {
 			state: null,
-			debug: false,
-			log: false,
+			debug: true,
+			log: true,
 			dropbox: false,
 			doubleTime: false
 		},
@@ -168,6 +168,12 @@
 				.text(_('save.'))
 				.click(Engine.exportImport)
 				.appendTo(menu);
+			
+			$('<span>')
+				.addClass('menuBtn')
+				.text(_('What is EWB?'))
+				.click(Engine.EWBinfo)
+				.appendTo(menu);
 
 			if(this.options.dropbox && Engine.Dropbox) {
 				this.dropbox = Engine.Dropbox.init();
@@ -208,10 +214,10 @@
 				Outside.init();
 			}
 			if($SM.get('stores.compass', true) > 0) {
-				Path.init();
+				//Path.init();
 			}
 			if($SM.get('features.location.spaceShip')) {
-				Ship.init();
+				//Ship.init();
 			}
 
 			if($SM.get('config.lightsOff', true)){
@@ -512,6 +518,23 @@
 				$('.lightsOff').text(_('lights off.'));
 				$SM.set('config.lightsOff', false, true);
 			}
+		},
+		
+		EWBinfo: function()	{
+			Events.startEvent({
+				title: _('About'),
+				scenes: {
+					start: {
+						text: [_("We are the Engineers Without Borders, we build wells and hold bake sales.")],
+						buttons: {
+							'close': {
+								text: _('Close'),
+								nextScene: 'end'
+							}
+						}
+					}
+				}
+		});
 		},
 
 		confirmHyperMode: function(){

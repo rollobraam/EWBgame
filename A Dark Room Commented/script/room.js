@@ -9,6 +9,10 @@ var Room = {
 	_STOKE_COOLDOWN: 10, // cooldown to stoke the fire
 	_NEED_WOOD_DELAY: 15 * 1000, // from when the stranger shows up, to when you need wood
 	
+	_BAKE_SALE_DURATION: 30 * 1000,
+	_CHARITY_RUN_DURATION: 1 * 60 * 1000,
+	_CHARITY_GALA_DURATION: 2 * 60 * 1000,
+	
 	buttons:{},
 	
 	Craftables: {
@@ -492,34 +496,31 @@ var Room = {
 		
 		Engine.updateSlider();
 		
-		// Create the light button
+		// Create the bake sale button
 		new Button.Button({
-			id: 'lightButton',
-			text: _('light fire'),
-			click: Room.lightFire,
-			cooldown: Room._STOKE_COOLDOWN,
-			width: '80px',
-			cost: {'wood': 5}
+			id: 'bakeSaleButton',
+			text: _('Hold bake sale'),
+			click: Room.bakeSale,
+			cooldown: Room._BAKE_SALE_DURATION,
+			width: '100px'
 		}).appendTo('div#roomPanel');
 		
-		// Create the stoke button
+		// Create the charity run button
 		new Button.Button({
-			id: 'stokeButton',
-			text: _("stoke fire"),
-			click: Room.stokeFire,
-			cooldown: Room._STOKE_COOLDOWN,
-			width: '80px',
-			cost: {'wood': 1}
+			id: 'charityRunButton',
+			text: _('Hold charity run'),
+			click: Room.charityRun,
+			cooldown: Room._CHARITY_RUN_DURATION,
+			width: '100px'
 		}).appendTo('div#roomPanel');
 		
-		// Create the stoke button
+		// Create the charity run button
 		new Button.Button({
-			id: 'testButton',
-			text: _("What is EWB?"),
-			click: Room.printEWBtext,
-			//cooldown: Room._STOKE_COOLDOWN,
-			width: '150px'
-			//cost: {'wood': 1}
+			id: 'charityGalaButton',
+			text: _('Hold charity gala'),
+			click: Room.charityGala,
+			cooldown: Room._CHARITY_GALA_DURATION,
+			width: '100px'
 		}).appendTo('div#roomPanel');
 		
 		// Create the stores container
@@ -548,7 +549,7 @@ var Room = {
 			Room._builderTimer = Engine.setTimeout(Room.updateBuilderState, Room._BUILDER_STATE_DELAY);
 		}
 		if($SM.get('game.builder.level') == 1 && $SM.get('stores.wood', true) < 0) {
-			Engine.setTimeout(Room.unlockForest, Room._NEED_WOOD_DELAY);
+			//Engine.setTimeout(Room.unlockForest, Room._NEED_WOOD_DELAY);
 		}
 		Engine.setTimeout($SM.collectIncome, 1000);
 
@@ -642,42 +643,31 @@ var Room = {
 			light.removeClass('free');
 			stoke.removeClass('free');
 		}
+		
+		var bakeSale = $('#bakeSaleButton.button');
+		if (bakeSale.hasClass('disabled'))	{
+			Button.cooldown(bakeSale);
+		}
 	},
 	
 	_fireTimer: null,
 	_tempTimer: null,
-	lightFire: function() {
+	
+	bakeSale: function()	{
 		var wood = $SM.get('stores.wood');
-		if(wood < 5) {
-			Notifications.notify(Room, _("not enough wood to get the fire going"));
-			Button.clearCooldown($('#lightButton.button'));
-			return;
-		} else if(wood > 4) {
-			$SM.set('stores.wood', wood - 5);
-		}
-		$SM.set('game.fire', Room.FireEnum.Burning);
-		Room.onFireChange();
+		$SM.set('stores.wood', wood + 10);
+		//.updateButton();
+		Engine.setInterval(Room.updateButton, Room._BAKE_SALE_DURATION);
 	},
 	
-	stokeFire: function() {
+	charityRun: function()	{
 		var wood = $SM.get('stores.wood');
-		if(wood === 0) {
-			Notifications.notify(Room, _("the wood has run out"));
-			Button.clearCooldown($('#stokeButton.button'));
-			return;
-		}
-		if(wood > 0) {
-			$SM.set('stores.wood', wood - 1);
-		}
-		if($SM.get('game.fire.value') < 4) {
-			$SM.set('game.fire', Room.FireEnum.fromInt($SM.get('game.fire.value') + 1));
-		}
-		Room.onFireChange();
+		$SM.set('stores.wood', wood + 20);
 	},
 	
-	printEWBtext: function() {
-		Notifications.notify(Room, _("We are the Engineers Without Borders, we build wells and hold bake sales."));
-		Room.onFireChange;
+	charityGala: function()	{
+		var wood = $SM.get('stores.wood');
+		$SM.set('stores.wood', wood + 30);
 	},
 	
 	onFireChange: function() {
@@ -740,7 +730,7 @@ var Room = {
 		if(lBuilder === 0) {
 			Notifications.notify(Room, _("a ragged stranger stumbles through the door and collapses in the corner"));
 			lBuilder = $SM.setget('game.builder.level', 1);
-			Engine.setTimeout(Room.unlockForest, Room._NEED_WOOD_DELAY);
+			//Engine.setTimeout(Room.unlockForest, Room._NEED_WOOD_DELAY);
 		} 
 		else if(lBuilder < 3 && $SM.get('game.temperature.value') >= Room.TempEnum.Warm.value) {
 			var msg = "";
