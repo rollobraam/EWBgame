@@ -198,6 +198,9 @@ var Outside = {
 			Engine.log('population increased by ' + num);
 			$SM.add('game.population', num);
 		}
+		if(space < 0) {
+			Outside.decreasePopulation(space * -1);
+		}
 		Outside.schedulePopIncrease();
 	},
 	
@@ -222,6 +225,27 @@ var Outside = {
 		}
 	},
 	
+	decreasePopulation: function(num) {
+		$SM.add('game.population', num * -1);
+		if($SM.get('game.population') < 0) {
+			$SM.set('game.population', 0);
+		}
+		var remaining = Outside.getNumGatherers();
+		if(remaining < 0) {
+			var gap = -remaining;
+			for(var k in $SM.get('game.workers')) {
+				var numWorkers = $SM.get('game.workers["'+k+'"]');
+				if(numWorkers < gap) {
+					gap -= numWorkers;
+					$SM.set('game.workers["'+k+'"]', 0);
+				} else {
+					$SM.add('game.workers["'+k+'"]', gap * -1);
+					break;
+				}
+			}
+		}
+	},
+
 	destroyHuts: function(num, allowEmpty) {
 		var dead = 0;
 		for(var i = 0; i < num; i++){
