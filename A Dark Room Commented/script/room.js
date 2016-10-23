@@ -9,9 +9,9 @@ var Room = {
 	_STOKE_COOLDOWN: 10, // cooldown to stoke the fire
 	_NEED_WOOD_DELAY: 15 * 1000, // from when the stranger shows up, to when you need wood
 	
-	_BAKE_SALE_DURATION: 15,
-	_CHARITY_RUN_DURATION: 50,
-	_CHARITY_GALA_DURATION: 100,
+	_BAKE_SALE_DURATION: 2,
+	_CHARITY_RUN_DURATION: 4,
+	_CHARITY_GALA_DURATION: 6,
 	
 	buttons:{},
 	
@@ -658,18 +658,25 @@ var Room = {
 	_tempTimer: null,
 	
 	bakeSale: function()	{
-		var wood = $SM.get('stores.wood');
-		$SM.set('stores.wood', wood + 10);
+		var money = $SM.get('stores.money');
+		if (!money)
+		{
+			$SM.createState('stores.money');
+			$SM.set('stores.money', 0);
+			money = 0;
+		}
+		
+		$SM.setDelayed('stores.money', money + 10, Room._BAKE_SALE_DURATION);
 	},
 	
 	charityRun: function()	{
-		var wood = $SM.get('stores.wood');
-		$SM.set('stores.wood', wood + 20);
+		var money = $SM.get('stores.money');
+		$SM.set('stores.money', money + 20);
 	},
 	
 	charityGala: function()	{
-		var wood = $SM.get('stores.wood');
-		$SM.set('stores.wood', wood + 30);
+		var money = $SM.get('stores.money');
+		$SM.set('stores.money', money + 30);
 	},
 	
 	onFireChange: function() {

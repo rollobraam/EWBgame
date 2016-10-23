@@ -97,6 +97,11 @@ var StateManager = {
 			$SM.fireUpdate(stateName);
 		}
 	},
+	
+	//set a single state after a condition is met
+	setDelayed: function(stateName, value, cooldown, noEvent) {
+		setTimeout(function() {StateManager.set(stateName, value, noEvent)}, (cooldown * 1000));
+	},
 
 	//sets a list of states
 	setM: function(parentName, list, noEvent) {

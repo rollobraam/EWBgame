@@ -72,7 +72,7 @@
 
 		options: {
 			state: null,
-			debug: true,
+			debug: false,
 			log: true,
 			dropbox: false,
 			doubleTime: false
@@ -522,7 +522,7 @@
 		
 		EWBinfo: function()	{
 			Events.startEvent({
-				title: _('About'),
+				title: _('About EWB'),
 				scenes: {
 					start: {
 						text: [_("We are the Engineers Without Borders, we build wells and hold bake sales.")],
