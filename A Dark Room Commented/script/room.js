@@ -9,9 +9,9 @@ var Room = {
 	_STOKE_COOLDOWN: 10, // cooldown to stoke the fire
 	_NEED_WOOD_DELAY: 15 * 1000, // from when the stranger shows up, to when you need wood
 	
-	_BAKE_SALE_DURATION: 30 * 1000,
-	_CHARITY_RUN_DURATION: 1 * 60 * 1000,
-	_CHARITY_GALA_DURATION: 2 * 60 * 1000,
+	_BAKE_SALE_DURATION: 15,
+	_CHARITY_RUN_DURATION: 50,
+	_CHARITY_GALA_DURATION: 100,
 	
 	buttons:{},
 	
@@ -645,6 +645,10 @@ var Room = {
 		}
 		
 		var bakeSale = $('#bakeSaleButton.button');
+		var charityRunButton = $('#charityRunButton.button');
+		var charityGalaButton = $('#charityGalaButton.button');
+		charityRunButton.hide();
+		charityGalaButton.hide();
 		if (bakeSale.hasClass('disabled'))	{
 			Button.cooldown(bakeSale);
 		}
@@ -656,8 +660,6 @@ var Room = {
 	bakeSale: function()	{
 		var wood = $SM.get('stores.wood');
 		$SM.set('stores.wood', wood + 10);
-		//.updateButton();
-		Engine.setInterval(Room.updateButton, Room._BAKE_SALE_DURATION);
 	},
 	
 	charityRun: function()	{

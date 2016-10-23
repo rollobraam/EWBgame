@@ -101,7 +101,7 @@ var Button = {
 			if (Engine.options.doubleTime){
 				time /= 2;
 			}
-			$('div.cooldown', btn).width(left * 100 +"%").animate({width: '0%'}, time * 1000, 'linear', function() {
+			$('div.cooldown', btn).width(0 +"%").animate({width: '100%'}, time * 1000, 'linear', function() {
 				Button.clearCooldown(btn, true);
 			});
 			btn.addClass('disabled');
@@ -122,6 +122,7 @@ var Button = {
 		}
 		if(!btn.data('disabled')) {
 			btn.removeClass('disabled');
+			$('div.cooldown', btn).width(0 + '%');
 		}
 	}
 };
