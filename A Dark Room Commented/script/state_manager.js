@@ -99,12 +99,15 @@ var StateManager = {
 	},
 	
 	//set a single state after a condition is met
-	setDelayed: function(stateName, value, cooldown, noEvent) {
-		setTimeout(function() {StateManager.set(stateName, value, noEvent)}, (cooldown * 1000));
+	setDelayed: function(stateName, value, cooldown, notificationText) {
+		setTimeout(function() {StateManager.set(stateName, value)}, (cooldown * 1000));
+		if (notificationText){
+			setTimeout(function() {Notifications.notify( Room, notificationText)}, (cooldown * 1000) );
+		}
 	},
 
 	//sets a list of states
-	setM: function(parentName, list, noEvent) {
+	setM: function(parentName, list) {
 		$SM.buildPath(parentName);
 
 		//make sure the state exists to avoid errors,
@@ -114,10 +117,10 @@ var StateManager = {
 			$SM.set(parentName+'["'+k+'"]', list[k], true);
 		}
 
-		if(!noEvent) {
-			Engine.saveGame();
-			$SM.fireUpdate(parentName);
-		}
+		//if(!noEvent) {
+		//	Engine.saveGame();
+		//	$SM.fireUpdate(parentName);
+		//}
 	},
 
 	//shortcut for altering number values, return 1 if state wasn't a number
