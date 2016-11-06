@@ -191,9 +191,9 @@ var Room = {
 			$SM.set('stores.funds', 0);
 			funds = 0;
 		}
-		var variance = Math.floor(Math.random() * (2 - (-2) + 1)) + (-2);
+		var variance = Room.generateRandomInt(-2, 2);
 		var profit = 10 + variance;
-		$SM.setDelayed('stores.funds', funds + profit, Room._BAKE_SALE_DURATION, "Your bake sale makes $" + profit);
+		$SM.addDelayed('stores.funds', profit, Room._BAKE_SALE_DURATION, "Your bake sale makes $" + profit);
 		
 		//if this is the first time we're holding a bake sale, members will start to join/leave afterwards.
 		if (!$SM.get('game.population'))
@@ -206,14 +206,18 @@ var Room = {
 
 	charityRun: function()	{
 		Notifications.notify(Room, _("You hold a charity run"));
-		var funds = $SM.get('stores.funds');
-		$SM.setDelayed('stores.funds', funds + 20, Room._CHARITY_RUN_DURATION, "Your charity run raised $20");
+		//var funds = $SM.get('stores.funds');
+		var variance = Room.generateRandomInt(-50, 50);
+		var profit = 200 + variance;
+		$SM.addDelayed('stores.funds', profit, Room._CHARITY_RUN_DURATION, "Your charity run raised $" + profit);
 	},
 
 	charityGala: function()	{
 		Notifications.notify(Room, _("You hold a charity gala"));
-		var funds = $SM.get('stores.funds');
-		$SM.setDelayed('stores.funds', funds + 30, Room._CHARITY_GALA_DURATION, "Your charity gala raised $30");
+		//var funds = $SM.get('stores.funds');
+		var variance = Room.generateRandomInt(-75, 75);
+		var profit = 600 + variance;
+		$SM.addDelayed('stores.funds', profit, Room._CHARITY_GALA_DURATION, "Your charity gala raised $" + profit);
 	},
 	
 	//Remove onFireChange
@@ -703,5 +707,9 @@ var Room = {
 		var nextUpdate = Math.floor(Math.random()*(Room._POP_DELAY[1] - Room._POP_DELAY[0])) + Room._POP_DELAY[0];
 		Engine.log('next population update scheduled in ' + nextUpdate + ' minutes');
 		Room._popTimeout = Engine.setTimeout(Room.updatePopulation, nextUpdate * 60 * 1000);
+	},
+	
+	generateRandomInt: function(min, max)	{
+		return Math.floor(Math.random() * (max - min + 1)) + min;
 	}
 };

@@ -105,6 +105,17 @@ var StateManager = {
 			setTimeout(function() {Notifications.notify( Room, notificationText)}, (cooldown * 1000) );
 		}
 	},
+	
+	//increase a single state after a condition is met
+	addDelayed: function(stateName, value, cooldown, notificationText) {
+		setTimeout(function() {
+			var store = $SM.get(stateName);
+			StateManager.set(stateName, store + value)
+			}, (cooldown * 1000));
+		if (notificationText){
+			setTimeout(function() {Notifications.notify( Room, notificationText)}, (cooldown * 1000) );
+		}
+	},
 
 	//sets a list of states
 	setM: function(parentName, list) {
