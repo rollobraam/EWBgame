@@ -198,10 +198,13 @@ var Room = {
 		//if this is the first time we're holding a bake sale, members will start to join/leave afterwards.
 		if (!$SM.get('game.population'))
 		{
-			$SM.createState('game.population');
-			$SM.set('game.population', 1);
+			$SM.createState('game.population', 1);
+			$SM.createState('game.visibility', 1);
 			Room.schedulePopUpdate();
 		}
+		
+		$SM.add('game.visibility', 1);
+		
 	},
 
 	charityRun: function()	{
@@ -210,6 +213,7 @@ var Room = {
 		var variance = Room.generateRandomInt(-50, 50);
 		var profit = 200 + variance;
 		$SM.addDelayed('stores.funds', profit, Room._CHARITY_RUN_DURATION, "Your charity run raised $" + profit);
+		$SM.add('game.visibility', 2);
 	},
 
 	charityGala: function()	{
@@ -218,6 +222,7 @@ var Room = {
 		var variance = Room.generateRandomInt(-75, 75);
 		var profit = 600 + variance;
 		$SM.addDelayed('stores.funds', profit, Room._CHARITY_GALA_DURATION, "Your charity gala raised $" + profit);
+		$SM.add('game.visibility', 4);
 	},
 	
 	//Remove onFireChange
