@@ -660,13 +660,8 @@ var Room = {
 		}
 	},
 
-	getMaxPopulation: function() {
-		//return $SM.get('game.buildings["hut"]', true) * Outside._HUT_ROOM;
-		return 25;
-	},
-
 	updatePopulation: function() {
-		var space = Room.getMaxPopulation() - $SM.get('game.population');
+		var space = $SM.get('game.visibility') - $SM.get('game.population');
 		if(space > 0) {
 			var num = Math.floor(Math.random()*(space/2) + space/2);
 			if(num === 0) num = 1;
