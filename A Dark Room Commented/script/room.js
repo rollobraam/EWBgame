@@ -688,7 +688,13 @@ var Room = {
 				$SM.set('game.population', 0);
 			}
 		}
+		
+		if ($SM.get('game.visibility') > 1) {
+			$SM.add('game.visibility', -1);
+		}
+		
 		Engine.log('Population is now: ' + $SM.get('game.population'));
+		Engine.log('Visibility is now: ' + $SM.get('game.visibility'));
 		Room.schedulePopUpdate();
 		var bakeSaleButton = $('#bakeSaleButton.button');
 		var charityRunButton = $('#charityRunButton.button');
