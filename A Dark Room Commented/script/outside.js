@@ -313,56 +313,6 @@ var Outside = {
 		return num;
 	},
 
-	makeWorkerRow: function(key, num) {
-		name = Outside._INCOME[key].name;
-		if(!name) name = key;
-		var row = $('<div>')
-			.attr('key', key)
-			.attr('id', 'workers_row_' + key.replace(' ','-'))
-			.addClass('workerRow');
-		$('<div>').addClass('row_key').text(name).appendTo(row);
-		var val = $('<div>').addClass('row_val').appendTo(row);
-
-		$('<span>').text(num).appendTo(val);
-
-		if(key != 'gatherer') {
-			$('<div>').addClass('upBtn').appendTo(val).click([1], Outside.increaseWorker);
-			$('<div>').addClass('dnBtn').appendTo(val).click([1], Outside.decreaseWorker);
-			$('<div>').addClass('upManyBtn').appendTo(val).click([10], Outside.increaseWorker);
-			$('<div>').addClass('dnManyBtn').appendTo(val).click([10], Outside.decreaseWorker);
-		}
-
-		$('<div>').addClass('clear').appendTo(row);
-
-		var tooltip = $('<div>').addClass('tooltip bottom right').appendTo(row);
-		var income = Outside._INCOME[key];
-		for(var s in income.stores) {
-			var r = $('<div>').addClass('storeRow');
-			$('<div>').addClass('row_key').text(_(s)).appendTo(r);
-			$('<div>').addClass('row_val').text(Engine.getIncomeMsg(income.stores[s], income.delay)).appendTo(r);
-			r.appendTo(tooltip);
-		}
-
-		return row;
-	},
-
-	increaseWorker: function(btn) {
-		var worker = $(this).closest('.workerRow').attr('key');
-		if(Outside.getNumGatherers() > 0) {
-			var increaseAmt = Math.min(Outside.getNumGatherers(), btn.data);
-			Engine.log('increasing ' + worker + ' by ' + increaseAmt);
-			$SM.add('game.workers["'+worker+'"]', increaseAmt);
-		}
-	},
-
-	decreaseWorker: function(btn) {
-		var worker = $(this).closest('.workerRow').attr('key');
-		if($SM.get('game.workers["'+worker+'"]') > 0) {
-			var decreaseAmt = Math.min($SM.get('game.workers["'+worker+'"]') || 0, btn.data);
-			Engine.log('decreasing ' + worker + ' by ' + decreaseAmt);
-			$SM.add('game.workers["'+worker+'"]', decreaseAmt * -1);
-		}
-	},
 
 	updateVillageRow: function(name, num, village) {
 		var id = 'building_row_' + name.replace(' ', '-');

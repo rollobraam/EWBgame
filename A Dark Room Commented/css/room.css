@@ -1,6 +1,6 @@
 div#buildBtns {
 	position: absolute;
-	top: 50px;
+	top: 150px;
 	left: 0px;
 }
 
@@ -12,13 +12,13 @@ div#buildBtns:before, div#craftBtns:before, div#buyBtns:before {
 
 div#craftBtns {
 	position: absolute;
-	top: 50px;
+	top: 150px;
 	left: 150px;
 }
 
 div#buyBtns {
 	position: absolute;
-	top: 50px;
+	top: 150px;
 	left: 300px;
 }
 
@@ -28,7 +28,35 @@ div#storesContainer {
 	right: 0px;
 }
 
-div#stores:before, div#weapons:before {
+div#workers {
+	position:absolute;
+	top: -4px;
+	left: 200px;
+	width: 150px;
+}
+
+.workerRow > .row_val {
+	position: relative;
+	padding-right: 20px;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.workerRow {
+	position: relative;
+	margin: 10px 0px;
+	cursor: default;
+}
+
+.workerRow .tooltip {
+	width: 150px;
+}
+
+div#stores:before {
 	position: absolute;
 	background: white;
 	content: attr(data-legend);
@@ -49,12 +77,4 @@ div.storeRow {
 	position: relative;
 }
 
-div#weapons {
-	margin-top: 15px;
-	position: relative;
-	right: 0px;
-	border: 1px solid black;
-	cursor: default;
-	padding: 5px 10px;
-	width: 200px;
-}
+

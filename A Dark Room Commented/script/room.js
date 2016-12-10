@@ -18,19 +18,29 @@ var Room = {
 
 	buttons:{},
 
-	Craftables: {},
+	Craftables: {
+		'well': {
+			name: _('well'),
+			button: null,
+			maximum: 50,
+			availableMsg: _('Start planning your well-building trip.'),
+			buildMsg: _('You construct a well, bringing water to the thirsty.'),
+			maxMsg: _("You have built all the wells your chapter can support."),
+			type: 'building',
+			cost: function() {
+				return {
+					'funds': 5000
+				};
+			}
+		}
+	},
 
 	TradeGoods: {},
 
 	MiscItems: {},
 
-	
-	Craftables: {},
-	
-	TradeGoods: {},
-	
-	MiscItems: {},
 	name: _("Room"),
+	
 	init: function(options) {
 		this.options = $.extend(
 			this.options,
@@ -50,14 +60,9 @@ var Room = {
 			$SM.set('features.location.room', true);
 			$SM.set('game.builder.level', -1);
 		}
-
-		// If this is the first time playing, the fire is dead and it's freezing.
-		// Otherwise grab past save state temp and fire level.
-		//$SM.set('game.temperature', $SM.get('game.temperature.value')===undefined?this.TempEnum.Freezing:$SM.get('game.temperature'));
-		//$SM.set('game.fire', $SM.get('game.fire.value')===undefined?this.FireEnum.Dead:$SM.get('game.fire'));
 		
 		// Create the room tab
-		this.tab = Header.addLocation(_("A Dark Room"), "room", Room);
+		this.tab = Header.addLocation(_("A Meeting Room"), "room", Room);
 
 		// Create the Room panel
 		this.panel = $('<div>')
@@ -96,6 +101,7 @@ var Room = {
 
 		// Create the stores container
 		$('<div>').attr('id', 'storesContainer').prependTo('div#roomPanel');
+		$('<div>').attr('id', 'workers').appendTo('div#roomPanel');
 
 		//subscribe to stateUpdates
 		$.Dispatch('stateUpdate').subscribe(Room.handleStateUpdates);
@@ -104,37 +110,26 @@ var Room = {
 		Room.updateStoresView();
 		Room.updateIncomeView();
 		Room.updateBuildButtons();
+		Room.updateWorkersView();
 		
-		//Room._fireTimer = Engine.setTimeout(Room.coolFire, Room._FIRE_COOL_DELAY);
-		//Room._tempTimer = Engine.setTimeout(Room.adjustTemp, Room._ROOM_WARM_DELAY);
+		Notifications.notify(Room, _("People are thirsty"));
 		
-		/*
-		 * Builder states:
-		 * 0 - Approaching
-		 * 1 - Collapsed
-		 * 2 - Shivering
-		 * 3 - Sleeping
-		 * 4 - Helping
-		 */
-		if($SM.get('game.builder.level') >= 0 && $SM.get('game.builder.level') < 3) {
-			Room._builderTimer = Engine.setTimeout(Room.updateBuilderState, Room._BUILDER_STATE_DELAY);
-		}
-		if($SM.get('game.builder.level') == 1 && $SM.get('stores.wood', true) < 0) {
-			//Engine.setTimeout(Room.unlockForest, Room._NEED_WOOD_DELAY);
-		}
 		Engine.setTimeout($SM.collectIncome, 1000);
-
-		//Notifications.notify(Room, _("the room is {0}", Room.TempEnum.fromInt($SM.get('game.temperature.value')).text));
-		//Notifications.notify(Room, _("the fire is {0}", Room.FireEnum.fromInt($SM.get('game.fire.value')).text));
 	},
 
 	options: {}, // Nothing for now
+	
+	updateRoom: function()	{
+		Room.updateButton();
+		Room.updateStoresView();
+		Room.updateIncomeView();
+		Room.updateBuildButtons();
+		Room.updateWorkersView();
+	},
 
 	onArrival: function(transition_diff) {
 		Room.setTitle();
 		if(Room.changed) {
-			//Notifications.notify(Room, _("the fire is {0}", Room.FireEnum.fromInt($SM.get('game.fire.value')).text));
-			//Notifications.notify(Room, _("the room is {0}", Room.TempEnum.fromInt($SM.get('game.temperature.value')).text));
 			Room.changed = false;
 		}
 		if($SM.get('game.builder.level') == 3) {
@@ -146,14 +141,13 @@ var Room = {
 			Room.updateIncomeView();
 			Notifications.notify(Room, _("the stranger is standing by the fire. she says she can help. says she builds things."));
 		}
-
 		Engine.moveStoresView(null, transition_diff);
 	},
 	
 	//removed fire state enums
 	
 	setTitle: function() {
-		var title = $SM.get('game.fire.value') < 2 ? _("A Dark Room") : _("A Firelit Room");
+		var title = _("EWB Meeting Room");
 		if(Engine.activeModule == this) {
 			document.title = title;
 		}
@@ -367,9 +361,9 @@ var Room = {
 			Room.updateIncomeView();
 		}
 
-		if($("div#outsidePanel").length) {
-			Outside.updateVillage();
-		}
+		//if($("div#roomPanel").length) {
+		//	Room.updateVillage();
+		//}
 
 		if($SM.get('stores.compass') && !Room.pathDiscovery){
 			Room.pathDiscovery = true;
@@ -441,10 +435,7 @@ var Room = {
 
 	build: function(buildBtn) {
 		var thing = $(buildBtn).attr('buildThing');
-		if($SM.get('game.temperature.value') <= Room.TempEnum.Cold.value) {
-			Notifications.notify(Room, _("builder just shivers"));
-			return false;
-		}
+
 		var craftable = Room.Craftables[thing];
 
 		var numThings = 0;
@@ -470,7 +461,7 @@ var Room = {
 		for(var k in cost) {
 			var have = $SM.get('stores["'+k+'"]', true);
 			if(have < cost[k]) {
-				Notifications.notify(Room, _("not enough "+k));
+				Notifications.notify(Room, _("You don't have enough "+k));
 				return false;
 			} else {
 				storeMod[k] = have - cost[k];
@@ -491,6 +482,7 @@ var Room = {
 			$SM.add('game.buildings["'+thing+'"]', 1);
 			break;
 		}
+		Room.updateStoresView();
 	},
 
 	needsWorkshop: function(type) {
@@ -501,7 +493,7 @@ var Room = {
 		if(Room.buttons[thing]) {
 			return true;
 		}
-		if($SM.get('game.builder.level') < 4) return false;
+
 		var craftable = Room.Craftables[thing];
 		if(Room.needsWorkshop(craftable.type) && $SM.get('game.buildings["'+'workshop'+'"]', true) === 0) return false;
 		var cost = craftable.cost();
@@ -512,7 +504,7 @@ var Room = {
 			return true;
 		}
 		// Show buttons if we have at least 1/2 the wood, and all other components have been seen.
-		if($SM.get('stores.wood', true) < cost['wood'] * 0.5) {
+		if(craftable.name != 'well' && $SM.get('stores.funds', true) < cost['funds'] * 0.5) {
 			return false;
 		}
 		for(var c in cost) {
@@ -706,13 +698,141 @@ var Room = {
 		if ($SM.get('game.population') > 20)	{
 			charityGalaButton.show();
 		}
-		
+		Room.updateWorkersView();
 	},
 
 	schedulePopUpdate: function() {
 		var nextUpdate = Math.floor(Math.random()*(Room._POP_DELAY[1] - Room._POP_DELAY[0])) + Room._POP_DELAY[0];
 		Engine.log('next population update scheduled in ' + nextUpdate + ' minutes');
 		Room._popTimeout = Engine.setTimeout(Room.updatePopulation, nextUpdate * 60 * 1000);
+	},
+	
+	// Functions for the assignment of members to different tasks
+	updateWorkersView: function() {
+		var workers = $('div#workers');
+
+		// If our population is 0 and we don't already have a workers view,
+		// there's nothing to do here.
+		if(!workers.length && $SM.get('game.population') === 0) return;
+
+		var needsAppend = false;
+		if(workers.length === 0) {
+			needsAppend = true;
+			workers = $('<div>').attr('id', 'workers').css('opacity', 0);
+		}
+
+		var numMembers = $SM.get('game.population');
+		var member = $('div#workers_row_member', workers);
+
+		for(var k in $SM.get('game.workers')) {
+			var lk = _(k);
+			var workerCount = $SM.get('game.workers["'+k+'"]');
+			var row = $('div#workers_row_' + k.replace(' ', '-'), workers);
+			if(row.length === 0) {
+				row = Room.makeWorkerRow(k, workerCount);
+
+				var curPrev = null;
+				workers.children().each(function(i) {
+					var child = $(this);
+					var cName = child.children('.row_key').text();
+					if(cName != 'member') {
+						if(cName < lk) {
+							curPrev = child.attr('id');
+						}
+					}
+				});
+				if(curPrev == null && member.length === 0) {
+					row.prependTo(workers);
+				} else if(curPrev == null) {
+					row.insertAfter(member);
+				} else {
+					row.insertAfter(workers.find('#'+ curPrev));
+				}
+
+			} else {
+				$('div#' + row.attr('id') + ' > div.row_val > span', workers).text(workerCount);
+			}
+			numMembers -= workerCount;
+			if(workerCount === 0) {
+				$('.dnBtn', row).addClass('disabled');
+				$('.dnManyBtn', row).addClass('disabled');
+			} else {
+				$('.dnBtn', row).removeClass('disabled');
+				$('.dnManyBtn', row).removeClass('disabled');
+			}
+		}
+
+		if(member.length === 0) {
+			member = Room.makeWorkerRow('member', numMembers);
+			member.prependTo(workers);
+		} else {
+			$('div#workers_row_member > div.row_val > span', workers).text(numMembers);
+		}
+
+		if(numMembers === 0) {
+			$('.upBtn', '#workers').addClass('disabled');
+			$('.upManyBtn', '#workers').addClass('disabled');
+		} else {
+			$('.upBtn', '#workers').removeClass('disabled');
+			$('.upManyBtn', '#workers').removeClass('disabled');
+		}
+
+
+		if(needsAppend && workers.children().length > 0) {
+			workers.appendTo('#roomPanel').animate({opacity:1}, 300, 'linear');
+		}
+	},
+	
+	makeWorkerRow: function(key, num) {
+		//name = Room._INCOME[key].name;
+		name = key;
+		//if(!name) name = key;
+		var row = $('<div>')
+			.attr('key', key)
+			.attr('id', 'workers_row_' + key.replace(' ','-'))
+			.addClass('workerRow');
+		$('<div>').addClass('row_key').text(name).appendTo(row);
+		var val = $('<div>').addClass('row_val').appendTo(row);
+
+		$('<span>').text(num).appendTo(val);
+
+		if(key != 'member') {
+			$('<div>').addClass('upBtn').appendTo(val).click([1], Room.increaseWorker);
+			$('<div>').addClass('dnBtn').appendTo(val).click([1], Room.decreaseWorker);
+			$('<div>').addClass('upManyBtn').appendTo(val).click([10], Room.increaseWorker);
+			$('<div>').addClass('dnManyBtn').appendTo(val).click([10], Room.decreaseWorker);
+		}
+
+		$('<div>').addClass('clear').appendTo(row);
+
+		/*var tooltip = $('<div>').addClass('tooltip bottom right').appendTo(row);
+		var income = Outside._INCOME[key];
+		for(var s in income.stores) {
+			var r = $('<div>').addClass('storeRow');
+			$('<div>').addClass('row_key').text(_(s)).appendTo(r);
+			$('<div>').addClass('row_val').text(Engine.getIncomeMsg(income.stores[s], income.delay)).appendTo(r);
+			r.appendTo(tooltip);
+		}*/
+
+		return row;
+	},
+
+	increaseWorker: function(btn) {
+		var worker = $(this).closest('.workerRow').attr('key');
+		if(Room.getNumGatherers() > 0) {
+			var increaseAmt = Math.min(Room.getNumGatherers(), btn.data);
+			Engine.log('increasing ' + worker + ' by ' + increaseAmt);
+			$SM.add('game.workers["'+worker+'"]', increaseAmt);
+		}
+	},
+
+	decreaseWorker: function(btn) {
+		var worker = $(this).closest('.workerRow').attr('key');
+		if($SM.get('game.workers["'+worker+'"]') > 0) {
+			var decreaseAmt = Math.min($SM.get('game.workers["'+worker+'"]') || 0, btn.data);
+			Engine.log('decreasing ' + worker + ' by ' + decreaseAmt);
+			$SM.add('game.workers["'+worker+'"]', decreaseAmt * -1);
+		}
 	},
 	
 	generateRandomInt: function(min, max)	{
