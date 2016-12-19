@@ -22,14 +22,14 @@ var Room = {
 		'well': {
 			name: _('well'),
 			button: null,
-			maximum: 50,
+			maximum: 10,
 			availableMsg: _('Start planning your well-building trip.'),
 			buildMsg: _('You construct a well, bringing water to the thirsty.'),
 			maxMsg: _("You have built all the wells your chapter can support."),
 			type: 'building',
 			cost: function() {
 				return {
-					'funds': 5000
+					'funds': 0
 				};
 			}
 		}
@@ -58,7 +58,6 @@ var Room = {
 
 		if(typeof $SM.get('features.location.room') == 'undefined') {
 			$SM.set('features.location.room', true);
-			$SM.set('game.builder.level', -1);
 		}
 		
 		// Create the room tab
@@ -246,25 +245,6 @@ var Room = {
 			}).css('opacity', 0);
 			needsAppend = true;
 		}
-		if(resources.length === 0) {
-			resources = $('<div>').attr({
-				id: 'resources'
-			}).css('opacity', 0);
-			rNeedsAppend = true;
-		}
-		if(special.length === 0) {
-			special = $('<div>').attr({
-				id: 'special'
-			}).css('opacity', 0);
-			sNeedsAppend = true;
-		}
-		if(weapons.length === 0) {
-			weapons = $('<div>').attr({
-				'id': 'weapons',
-				'data-legend': _('weapons')
-			}).css('opacity', 0);
-			wNeedsAppend = true;
-		}
 		for(var k in $SM.get('stores')) {
 
 			var type = null;
@@ -282,16 +262,9 @@ var Room = {
 				// Don't display upgrades on the Room screen
 				continue;
 			case 'building':
-				// Don't display buildings either
-				continue;
-			case 'weapon':
-				location = weapons;
-				break;
-			case 'special':
-				location = special;
-				break;
-			default:
 				location = resources;
+			default:
+				location = stores;
 				break;
 			}
 
@@ -307,11 +280,6 @@ var Room = {
 			}
 
 			var lk = _(k);
-
-			// thieves?
-			if(typeof $SM.get('game.thieves') == 'undefined' && num > 5000 && $SM.get('features.location.world')) {
-				$SM.startThieves();
-			}
 
 			if(row.length === 0) {
 				row = $('<div>').attr('id', id).addClass('storeRow');
@@ -330,6 +298,10 @@ var Room = {
 					row.prependTo(location);
 				} else {
 					row.insertAfter(location.find('#' + curPrev));
+				}
+				//if we are just introducing wells, we need to start well decay
+				if (k == 'well')	{
+					Engine.setInterval(Room.breakWell, 15000);
 				}
 				newRow = true;
 			} else {
@@ -359,15 +331,6 @@ var Room = {
 
 		if(newRow) {
 			Room.updateIncomeView();
-		}
-
-		//if($("div#roomPanel").length) {
-		//	Room.updateVillage();
-		//}
-
-		if($SM.get('stores.compass') && !Room.pathDiscovery){
-			Room.pathDiscovery = true;
-			Path.openPath();
 		}
 	},
 
@@ -447,7 +410,7 @@ var Room = {
 			numThings = $SM.get('stores["'+thing+'"]', true);
 			break;
 		case 'building':
-			numThings = $SM.get('game.buildings["'+thing+'"]', true);
+			numThings = $SM.get('stores["'+thing+'"]', true);
 			break;
 		}
 
@@ -479,7 +442,7 @@ var Room = {
 			$SM.add('stores["'+thing+'"]', 1);
 			break;
 		case 'building':
-			$SM.add('game.buildings["'+thing+'"]', 1);
+			$SM.add('stores["'+thing+'"]', 1);
 			break;
 		}
 		Room.updateStoresView();
@@ -634,12 +597,6 @@ var Room = {
 		}
 	},
 
-	compassTooltip: function(direction){
-		var tt = $('<div>').addClass('tooltip bottom right');
-		$('<div>').addClass('row_key').text(_('the compass points '+ direction)).appendTo(tt);
-		tt.appendTo($('#row_compass'));
-	},
-
 	handleStateUpdates: function(e){
 		if(e.category == 'stores'){
 			Room.updateStoresView();
@@ -650,6 +607,7 @@ var Room = {
 		} else if(e.stateName.indexOf('game.buildings') === 0){
 			Room.updateBuildButtons();
 		}
+		Room.updateWorkersView();
 	},
 
 	updatePopulation: function() {
@@ -707,7 +665,7 @@ var Room = {
 		Room._popTimeout = Engine.setTimeout(Room.updatePopulation, nextUpdate * 60 * 1000);
 	},
 	
-	// Functions for the assignment of members to different tasks
+	// Functions for the assignment of members to different tasks - BACKLOG
 	updateWorkersView: function() {
 		var workers = $('div#workers');
 
@@ -752,7 +710,11 @@ var Room = {
 			} else {
 				$('div#' + row.attr('id') + ' > div.row_val > span', workers).text(workerCount);
 			}
-			numMembers -= workerCount;
+			// If this is well maintenance, it doesn't follow the same rules as workers, since it is funding and not people being allocated
+            if (k != 'Well Maintenance') {
+                numMembers -= workerCount;
+            }
+
 			if(workerCount === 0) {
 				$('.dnBtn', row).addClass('disabled');
 				$('.dnManyBtn', row).addClass('disabled');
@@ -768,7 +730,13 @@ var Room = {
 		} else {
 			$('div#workers_row_member > div.row_val > span', workers).text(numMembers);
 		}
-
+		
+		//if(typeof $SM.get('stores.well') != 'undefined' && $SM.get('stores.well') > 0) {
+        //    $SM.add('game.wells', 0);
+        //    wellMaint = Room.makeWorkerRow('Well Maintenance', 0);
+        //    wellMaint.appendTo(workers);
+        //}
+		
 		if(numMembers === 0) {
 			$('.upBtn', '#workers').addClass('disabled');
 			$('.upManyBtn', '#workers').addClass('disabled');
@@ -795,7 +763,7 @@ var Room = {
 		var val = $('<div>').addClass('row_val').appendTo(row);
 
 		$('<span>').text(num).appendTo(val);
-
+		
 		if(key != 'member') {
 			$('<div>').addClass('upBtn').appendTo(val).click([1], Room.increaseWorker);
 			$('<div>').addClass('dnBtn').appendTo(val).click([1], Room.decreaseWorker);
@@ -805,22 +773,13 @@ var Room = {
 
 		$('<div>').addClass('clear').appendTo(row);
 
-		/*var tooltip = $('<div>').addClass('tooltip bottom right').appendTo(row);
-		var income = Outside._INCOME[key];
-		for(var s in income.stores) {
-			var r = $('<div>').addClass('storeRow');
-			$('<div>').addClass('row_key').text(_(s)).appendTo(r);
-			$('<div>').addClass('row_val').text(Engine.getIncomeMsg(income.stores[s], income.delay)).appendTo(r);
-			r.appendTo(tooltip);
-		}*/
-
 		return row;
 	},
 
 	increaseWorker: function(btn) {
 		var worker = $(this).closest('.workerRow').attr('key');
-		if(Room.getNumGatherers() > 0) {
-			var increaseAmt = Math.min(Room.getNumGatherers(), btn.data);
+		if(Room.getNumMembers() > 0) {
+			var increaseAmt = Math.min(Room.getNumMembers(), btn.data);
 			Engine.log('increasing ' + worker + ' by ' + increaseAmt);
 			$SM.add('game.workers["'+worker+'"]', increaseAmt);
 		}
@@ -833,6 +792,61 @@ var Room = {
 			Engine.log('decreasing ' + worker + ' by ' + decreaseAmt);
 			$SM.add('game.workers["'+worker+'"]', decreaseAmt * -1);
 		}
+	},
+	
+	/*increaseFunding: function(btn) {
+        var program = $(this).closest('.workerRow').attr('key');
+        if($SM.get('stores.funds') > 0) {
+            var increaseAmt = Math.min($SM.get('stores.funds'), btn.data);
+            Engine.log('increasing ' + program + ' by ' + increaseAmt);
+            $SM.add('game.workers["'+program+'"]', increaseAmt);
+        }
+    },
+    
+    decreaseFunding: function(btn) {
+        var program = $(this).closest('.workerRow').attr('key');
+        if($SM.get('game.workers["'+program+'"]') > 0) {
+            var decreaseAmt = Math.min($SM.get('game.workers["'+program+'"]') || 0, btn.data);
+            Engine.log('decreasing ' + program + ' by ' + decreaseAmt);
+            $SM.add('game.workers["'+program+'"]', decreaseAmt * -1);
+        }
+    },*/
+
+	getNumMembers: function() {
+		var num = $SM.get('game.population');
+        //for(var k in $SM.get('game.workers')) {
+        //    num -= $SM.get('game.workers["'+k+'"]');
+        //}
+        return num;
+	},
+	//Well health decays over time, this function will determine how long before the next well breaks
+	//Returns the time delay until the next well breakage
+	//TODO
+	calculateWellDecay: function()	{
+		var numWells = $SM.get('stores.well');
+		var WMP = $SM.get('game.wellMaintenancePoints');
+		Engine.log("Well maintenance: " + $SM.get('game.wellMaintenancePoints'));
+	},
+	
+	breakWell: function() {
+		var numWells = $SM.get('stores.well');
+		//Handle the case where this is the first well that has broken, so we need to introduce the concept of "well maintenance"
+		if (typeof $SM.get('stores.well_broken') == 'undefined')	{
+			$SM.createState('stores.well_broken', 0);
+			$SM.createState('game.wellMaintenancePoints', 0);
+			Engine.log( "Well maintenance: " + $SM.get('game.wellMaintenancePoints') );
+		}
+		if (numWells > 0)	{
+			$SM.add('stores.well', -1);
+			$SM.add('stores.well_broken', 1);
+		}
+		Notifications.notify("One of your wells has stopped working!");
+		Room.updateStoresView;
+	},
+	
+	fixWell: function()	{
+		$SM.add('stores.well', 1);
+		$SM.add('stores.well_broken', -1);
 	},
 	
 	generateRandomInt: function(min, max)	{
