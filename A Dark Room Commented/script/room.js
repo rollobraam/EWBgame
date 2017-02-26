@@ -111,6 +111,8 @@ var Room = {
 		Room.updateBuildButtons();
 		Room.updateWorkersView();
 		
+		// This is where we could put an event for an "introduction"
+		
 		Notifications.notify(Room, _("People are thirsty"));
 		
 		Engine.setTimeout($SM.collectIncome, 1000);
@@ -301,7 +303,7 @@ var Room = {
 				}
 				//if we are just introducing wells, we need to start well decay
 				if (k == 'well')	{
-					Engine.setInterval(Room.breakWell, 15000);
+					Engine.setInterval(Room.breakWell, 15000); // NB: Use setTimeout to only fire once, then set a Timeout again within the breakWell function, for dynamic timing with wellMaintenance.
 				}
 				newRow = true;
 			} else {
@@ -710,8 +712,8 @@ var Room = {
 			} else {
 				$('div#' + row.attr('id') + ' > div.row_val > span', workers).text(workerCount);
 			}
-			// If this is well maintenance, it doesn't follow the same rules as workers, since it is funding and not people being allocated
-            if (k != 'Well Maintenance') {
+			// If this is Maintenance, it doesn't follow the same rules as workers, since it is funding and not people being allocated
+            if (k != 'Maintenance') {
                 numMembers -= workerCount;
             }
 
@@ -731,11 +733,12 @@ var Room = {
 			$('div#workers_row_member > div.row_val > span', workers).text(numMembers);
 		}
 		
-		//if(typeof $SM.get('stores.well') != 'undefined' && $SM.get('stores.well') > 0) {
-        //    $SM.add('game.wells', 0);
-        //    wellMaint = Room.makeWorkerRow('Well Maintenance', 0);
-        //    wellMaint.appendTo(workers);
-        //}
+		// Only create the Maintenance row if Wells have been created and we have not created the row for Maintenance yet
+		var well_maint = $('div#workers_row_Well-Maintenance');
+		if(typeof $SM.get('stores.well') != 'undefined' && well_maint.length === 0) {
+            wellMaint = Room.makeWorkerRow('Maintenance', 0);
+            wellMaint.appendTo(workers);
+        }
 		
 		if(numMembers === 0) {
 			$('.upBtn', '#workers').addClass('disabled');
@@ -764,11 +767,17 @@ var Room = {
 
 		$('<span>').text(num).appendTo(val);
 		
-		if(key != 'member') {
+		if(key != 'member' && key != 'Maintenance') {
 			$('<div>').addClass('upBtn').appendTo(val).click([1], Room.increaseWorker);
 			$('<div>').addClass('dnBtn').appendTo(val).click([1], Room.decreaseWorker);
 			$('<div>').addClass('upManyBtn').appendTo(val).click([10], Room.increaseWorker);
 			$('<div>').addClass('dnManyBtn').appendTo(val).click([10], Room.decreaseWorker);
+		}
+		else if (key == 'Maintenance')	{
+			$('<div>').addClass('upBtn').appendTo(val).click([10], Room.increaseFunding);
+			$('<div>').addClass('dnBtn').appendTo(val).click([10], Room.decreaseFunding);
+			$('<div>').addClass('upManyBtn').appendTo(val).click([50], Room.increaseFunding);
+			$('<div>').addClass('dnManyBtn').appendTo(val).click([50], Room.decreaseFunding);
 		}
 
 		$('<div>').addClass('clear').appendTo(row);
@@ -794,12 +803,26 @@ var Room = {
 		}
 	},
 	
-	/*increaseFunding: function(btn) {
+	increaseFunding: function(btn) {
         var program = $(this).closest('.workerRow').attr('key');
+		var increaseAmt;
         if($SM.get('stores.funds') > 0) {
-            var increaseAmt = Math.min($SM.get('stores.funds'), btn.data);
-            Engine.log('increasing ' + program + ' by ' + increaseAmt);
-            $SM.add('game.workers["'+program+'"]', increaseAmt);
+			// We need to check to make sure we do not invest more than we have.
+			var max = $SM.get('stores.funds');
+			if (typeof $SM.get('game.workers["'+program+'"]') == 'undefined')	{
+				$SM.createState('game.workers["'+program+'"]');
+			}
+			var current = typeof $SM.get('game.workers["'+program+'"]') == 'undefined' ? 0 : $SM.get('game.workers["'+program+'"]');
+			var diff = max - current;
+			if (current + btn.data > max)
+			{
+				Engine.log('increasing ' + program + ' by ' + diff);
+				$SM.add('game.workers["'+program+'"]', diff);
+			}
+			else{
+				Engine.log('increasing ' + program + ' by ' + btn.data);
+				$SM.add('game.workers["'+program+'"]', btn.data);
+			}
         }
     },
     
@@ -810,7 +833,7 @@ var Room = {
             Engine.log('decreasing ' + program + ' by ' + decreaseAmt);
             $SM.add('game.workers["'+program+'"]', decreaseAmt * -1);
         }
-    },*/
+    },
 
 	getNumMembers: function() {
 		var num = $SM.get('game.population');
@@ -825,16 +848,16 @@ var Room = {
 	calculateWellDecay: function()	{
 		var numWells = $SM.get('stores.well');
 		var WMP = $SM.get('game.wellMaintenancePoints');
-		Engine.log("Well maintenance: " + $SM.get('game.wellMaintenancePoints'));
+		Engine.log("Maintenance: " + $SM.get('game.wellMaintenancePoints'));
 	},
 	
 	breakWell: function() {
 		var numWells = $SM.get('stores.well');
-		//Handle the case where this is the first well that has broken, so we need to introduce the concept of "well maintenance"
+		//Handle the case where this is the first well that has broken, so we need to introduce the concept of "Maintenance"
 		if (typeof $SM.get('stores.well_broken') == 'undefined')	{
 			$SM.createState('stores.well_broken', 0);
 			$SM.createState('game.wellMaintenancePoints', 0);
-			Engine.log( "Well maintenance: " + $SM.get('game.wellMaintenancePoints') );
+			Engine.log( "Maintenance: " + $SM.get('game.wellMaintenancePoints') );
 		}
 		if (numWells > 0)	{
 			$SM.add('stores.well', -1);
@@ -847,6 +870,12 @@ var Room = {
 	fixWell: function()	{
 		$SM.add('stores.well', 1);
 		$SM.add('stores.well_broken', -1);
+	},
+	
+	// This function will handle the inflow and outflow of cash for the chapter.
+	// For  now, the only contributing element is the Maintenance, but in the future things such as Operational Costs, Grants, etc. can be added here
+	updateFunds: function ()	{
+		//var wellMaint = 
 	},
 	
 	generateRandomInt: function(min, max)	{
