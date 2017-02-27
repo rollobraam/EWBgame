@@ -14,6 +14,7 @@ var Room = {
 	_CHARITY_GALA_DURATION: 6,
 
 	_POP_DELAY: [0.1, 0.5],
+	_INCOME_DELAY: 10 * 1000,
 	_HUT_ROOM: 4,
 
 	buttons:{},
@@ -115,7 +116,8 @@ var Room = {
 		
 		Notifications.notify(Room, _("People are thirsty"));
 		
-		Engine.setTimeout($SM.collectIncome, 1000);
+		//Engine.setTimeout($SM.collectIncome, 1000);
+		Engine.setTimeout(Room.updateFunds, Room._INCOME_DELAY);
 	},
 
 	options: {}, // Nothing for now
@@ -805,7 +807,7 @@ var Room = {
 	
 	increaseFunding: function(btn) {
         var program = $(this).closest('.workerRow').attr('key');
-		var increaseAmt;
+		var increaseAmt = btn.data[0];
         if($SM.get('stores.funds') > 0) {
 			// We need to check to make sure we do not invest more than we have.
 			var max = $SM.get('stores.funds');
@@ -814,14 +816,14 @@ var Room = {
 			}
 			var current = typeof $SM.get('game.workers["'+program+'"]') == 'undefined' ? 0 : $SM.get('game.workers["'+program+'"]');
 			var diff = max - current;
-			if (current + btn.data > max)
+			if (current + increaseAmt > max)
 			{
 				Engine.log('increasing ' + program + ' by ' + diff);
 				$SM.add('game.workers["'+program+'"]', diff);
 			}
 			else{
-				Engine.log('increasing ' + program + ' by ' + btn.data);
-				$SM.add('game.workers["'+program+'"]', btn.data);
+				Engine.log('increasing ' + program + ' by ' + increaseAmt);
+				$SM.add('game.workers["'+program+'"]', increaseAmt);
 			}
         }
     },
@@ -851,6 +853,7 @@ var Room = {
 		Engine.log("Maintenance: " + $SM.get('game.wellMaintenancePoints'));
 	},
 	
+	//TODO convert to use Maintenance
 	breakWell: function() {
 		var numWells = $SM.get('stores.well');
 		//Handle the case where this is the first well that has broken, so we need to introduce the concept of "Maintenance"
@@ -863,7 +866,7 @@ var Room = {
 			$SM.add('stores.well', -1);
 			$SM.add('stores.well_broken', 1);
 		}
-		Notifications.notify("One of your wells has stopped working!");
+		Notifications.notify(Room, "One of your wells has stopped working!");
 		Room.updateStoresView;
 	},
 	
@@ -875,7 +878,28 @@ var Room = {
 	// This function will handle the inflow and outflow of cash for the chapter.
 	// For  now, the only contributing element is the Maintenance, but in the future things such as Operational Costs, Grants, etc. can be added here
 	updateFunds: function ()	{
-		//var wellMaint = 
+		if ($SM.get('stores.well') == 0)	{
+			Engine.setTimeout(Room.updateFunds, Room._INCOME_DELAY);
+			return;
+		}
+		var wellMaint = $SM.get('game.workers["Maintenance"]');
+		if (wellMaint == undefined)	{  //Do nothing (for now) if there is no well maintenance.  Later, we could add other cashflow items, then this will be an oversimplification.
+			Engine.setTimeout(Room.updateFunds, Room._INCOME_DELAY);
+			return;
+		}
+		var funds = $SM.get('stores.funds');
+		if (funds < wellMaint)	{
+			$SM.set('stores.funds', 0);
+			$SM.set('game.workers["Maintenance"]', 0);
+			Notifications.notify("Well maintance exceeds your current funds!");
+			Engine.setTimeout(Room.updateFunds, Room._INCOME_DELAY);
+			return;
+		}
+		$SM.add('stores.funds', wellMaint * -1);
+		Notifications.notify(Room, ("Well Maintenance cost $" + wellMaint));
+		Engine.log("Well maintenance cost " + wellMaint);
+		Engine.setTimeout(Room.updateFunds, Room._INCOME_DELAY);
+		return;
 	},
 	
 	generateRandomInt: function(min, max)	{
