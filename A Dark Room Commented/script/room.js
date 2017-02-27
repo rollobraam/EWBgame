@@ -734,7 +734,7 @@ var Room = {
 		}
 		
 		// Only create the Maintenance row if Wells have been created and we have not created the row for Maintenance yet
-		var well_maint = $('div#workers_row_Well-Maintenance');
+		var well_maint = $('div#workers_row_Maintenance');
 		if(typeof $SM.get('stores.well') != 'undefined' && well_maint.length === 0) {
             wellMaint = Room.makeWorkerRow('Maintenance', 0);
             wellMaint.appendTo(workers);
